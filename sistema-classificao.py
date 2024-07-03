@@ -3,44 +3,32 @@ import os
 import requests
 import re
 
+# Classe Student
 class Student:
     def __init__(self, name_attribute, **kwargs):
         self.name_attribute = name_attribute
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+    # Obtém o nome do aluno com base no atributo name.
     def get_name(self):
-        """
-        Gets the student's name based on the name attribute.
-        """
         return getattr(self, self.name_attribute, 'Unknown')
 
+    # Verifica se o valor fornecido é um URL.
     def is_link(self, value):
-        """
-        Checks if the given value is a URL.
-        """
         return isinstance(value, str) and value.startswith(("http://", "https://"))
 
+    # Faz o download de todos os arquivos dos atributos URL e os salva na pasta com o nome do aluno.
     def download_files(self, downloader):
-        """
-        Downloads all files from URL attributes and saves them in the folder named after the student.
-        """
         folder_name = self.get_name()
         for attribute, value in vars(self).items():
             if self.is_link(value):
                 downloader.download_file(attribute, value, folder_name)
 
-
+# Classe FileDownloader
 class FileDownloader:
+    # Faz o download de um arquivo de uma URL e o salva na pasta especificada.
     def download_file(self, attribute, url, folder_name):
-        """
-        Downloads a file from a URL and saves it in the specified folder.
-        
-        Parameters:
-        attribute (str): The attribute name that contains the URL.
-        url (str): The URL of the file to be downloaded.
-        folder_name (str): The name of the folder to save the file in.
-        """
         if 'drive.google.com' in url:
             url = self.get_direct_google_drive_link(url)
         
@@ -63,63 +51,29 @@ class FileDownloader:
         else:
             print(f"Failed to download file from {url}")
 
+    # Obtém o token de confirmação para download do Google Drive.
     def get_confirm_token(self, response):
-        """
-        Get confirmation token for Google Drive download.
-        
-        Parameters:
-        response (requests.Response): The initial response from Google Drive.
-        
-        Returns:
-        str: The confirmation token if present, else None.
-        """
         for key, value in response.cookies.items():
             if key.startswith('download_warning'):
                 return value
         return None
 
+    # Converte um link compartilhado do Google Drive em um link de download direto.
     def get_direct_google_drive_link(self, url):
-        """
-        Converts a Google Drive shareable link to a direct download link.
-        
-        Parameters:
-        url (str): The Google Drive shareable link.
-        
-        Returns:
-        str: The direct download link.
-        """
         file_id = url.split('/')[-2]
         return f"https://drive.google.com/uc?export=download&id={file_id}"
 
+    # Remove caracteres inválidos e limita o comprimento do nome do arquivo.
     @staticmethod
     def sanitize_filename(filename):
-        """
-        Sanitize the filename to remove or replace invalid characters and limit its length.
-        
-        Parameters:
-        filename (str): The original filename.
-        
-        Returns:
-        str: The sanitized filename.
-        """
-        # Remove invalid characters
         filename = re.sub(r'[<>:"/\\|?*]', '', filename)
-        # Limit the length of the filename
         return filename[:100]
 
-
+# Classe CSVReader
 class CSVReader:
+    # Lê um arquivo CSV em um DataFrame do pandas.
     @staticmethod
     def read_csv_to_dataframe(file_path):
-        """
-        Reads a CSV file into a pandas DataFrame.
-        
-        Parameters:
-        file_path (str): The path to the CSV file.
-        
-        Returns:
-        pandas.DataFrame: The DataFrame containing the CSV data, or None if the file does not exist.
-        """
         if not os.path.isfile(file_path):
             print(f"File not found: {file_path}")
             return None
@@ -129,21 +83,12 @@ class CSVReader:
         except Exception as e:
             print(f"An error occurred while reading the CSV file: {e}")
             return None
-
-
+        
+# Classe StudentFactory usando o padrão Factory Method que é responsável por criar objetos Student.
 class StudentFactory:
+    # Cria uma lista de objetos Student a partir de um DataFrame do pandas.
     @staticmethod
     def create_students_from_dataframe(dataframe, name_attribute):
-        """
-        Creates a list of Student objects from a pandas DataFrame.
-        
-        Parameters:
-        dataframe (pandas.DataFrame): The DataFrame containing student data.
-        name_attribute (str): The column name that represents the student's name.
-        
-        Returns:
-        list: A list of Student objects.
-        """
         if dataframe is None:
             print("DataFrame is None, cannot create students.")
             return []
@@ -155,10 +100,10 @@ class StudentFactory:
         return students
 
 
-# Example usage
+# Função principal
 def main():
-    file_path = 'inscricoes.csv'  # Replace with the correct path to your CSV file
-    name_attribute = 'Nome Completo'  # Replace with the actual column name representing the student's name
+    file_path = 'inscricoes.csv'
+    name_attribute = 'Nome Completo'
     
     df = CSVReader.read_csv_to_dataframe(file_path)
     if df is not None:
